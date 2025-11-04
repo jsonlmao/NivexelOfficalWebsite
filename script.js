@@ -55,12 +55,25 @@ window.addEventListener('resize', () => {
     canvas.height = window.innerHeight;
 });
 
-// Animated loading dots
+// Smooth animated loading dots with fade effect
 const statusText = document.querySelector('.status-text');
 const baseText = '> / Transition Pending';
-let dotCount = 0;
 
-setInterval(() => {
-    dotCount = (dotCount % 3) + 1;
-    statusText.textContent = baseText + '.'.repeat(dotCount);
-}, 500);
+function animateDots() {
+    const time = Date.now();
+    const cycle = (time % 2400) / 2400; // 2.4 second full cycle
+    
+    let dots = '';
+    if (cycle < 0.33) {
+        dots = '.';
+    } else if (cycle < 0.66) {
+        dots = '..';
+    } else {
+        dots = '...';
+    }
+    
+    statusText.textContent = baseText + dots;
+    requestAnimationFrame(animateDots);
+}
+
+animateDots();
