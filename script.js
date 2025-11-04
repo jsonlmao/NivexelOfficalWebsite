@@ -1,9 +1,7 @@
 const canvas = document.getElementById('particles');
 const ctx = canvas.getContext('2d');
-
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
-
 const particles = [];
 const particleCount = 150;
 
@@ -56,3 +54,13 @@ window.addEventListener('resize', () => {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 });
+
+// Animated loading dots
+const statusText = document.querySelector('.status-text');
+const baseText = '> / Transition Pending';
+let dotCount = 0;
+
+setInterval(() => {
+    dotCount = (dotCount % 3) + 1;
+    statusText.textContent = baseText + '.'.repeat(dotCount);
+}, 500);
