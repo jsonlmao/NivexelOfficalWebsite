@@ -47,7 +47,7 @@ body {
 .status-text {
     color: #fff;
     font-size: 1.2rem;
-    font-weight: 400;
+    font-weight: 100;  /* Changed from 400 to 100 */
     letter-spacing: 0.05em;
     opacity: 0.9;
 }
