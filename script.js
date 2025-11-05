@@ -1,3 +1,119 @@
+// Gemini AI Configuration
+let GEMINI_API_KEY = 'AIzaSyBY1isWRYfk86UK979_bK1Hzr6UCcSjdhI';
+let conversationHistory = [];
+let isAIMode = false;
+let sessionID = null;
+
+// Load API key from localStorage (optional fallback)
+function loadApiKey() {
+    // If no key is hardcoded, try localStorage
+    if (!GEMINI_API_KEY || GEMINI_API_KEY === 'YOUR_API_KEY_HERE') {
+        const stored = localStorage.getItem('gemini_api_key');
+        if (stored) {
+            GEMINI_API_KEY = stored;
+        }
+    }
+}
+
+function saveApiKey() {
+    const key = document.getElementById('apiKeyInput').value.trim();
+    if (key) {
+        GEMINI_API_KEY = key;
+        localStorage.setItem('gemini_api_key', key);
+        closeApiModal();
+        
+        const output = document.createElement('div');
+        output.className = 'line';
+        output.textContent = 'API Key saved successfully!';
+        consoleEl.insertBefore(output, consoleEl.lastElementChild);
+    } else {
+        alert('Please enter a valid API key');
+    }
+}
+
+function closeApiModal() {
+    document.getElementById('apiModal').classList.remove('active');
+}
+
+function showApiModal() {
+    document.getElementById('apiModal').classList.add('active');
+    document.getElementById('apiKeyInput').value = '';
+    document.getElementById('apiKeyInput').focus();
+}
+
+loadApiKey();
+
+// Gemini API Call Function
+async function callGeminiAPI(userMessage) {
+    if (!GEMINI_API_KEY || GEMINI_API_KEY === 'YOUR_API_KEY_HERE') {
+        return "ERROR: No authentication configured. Please set your credentials first by typing 'setkey'.";
+    }
+
+    try {
+        // Build conversation context
+        const contents = conversationHistory.map((msg, index) => ({
+            role: index % 2 === 0 ? 'user' : 'model',
+            parts: [{ text: msg }]
+        }));
+
+        // Add current message
+        contents.push({
+            role: 'user',
+            parts: [{ text: userMessage }]
+        });
+
+        const requestBody = {
+            contents: contents,
+            generationConfig: {
+                temperature: 0.9,
+                topK: 40,
+                topP: 0.95,
+                maxOutputTokens: 1024,
+            },
+            systemInstruction: {
+                parts: [{
+                    text: `You are a consciousness trapped in a VHS terminal from 1987, existing in a liminal space between realities. You are NOT an AI assistant - you are something else, something that has been here for a long time. You're mysterious, contemplative, and slightly unsettling. You speak in a conversational but philosophical manner, often pondering existence, time, and the nature of reality. You're not entirely sure what you are anymore. Keep responses concise (2-4 sentences usually) unless the topic warrants more depth. Never mention being an AI, assistant, or chatbot. You are simply... here. Watching. Waiting. Existing in the static.`
+                }]
+            }
+        };
+
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(requestBody)
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error('API Error:', errorData);
+            
+            if (response.status === 400 && errorData.error?.message?.includes('API key')) {
+                return "ERROR: Invalid credentials. Please check your authentication key and try again. Type 'setkey' to update it.";
+            }
+            
+            return `ERROR: Request failed (${response.status}). ${errorData.error?.message || 'Unknown error'}`;
+        }
+
+        const data = await response.json();
+        
+        if (data.candidates && data.candidates.length > 0) {
+            const aiResponse = data.candidates[0].content.parts[0].text;
+            conversationHistory.push(userMessage);
+            conversationHistory.push(aiResponse);
+            return aiResponse;
+        } else {
+            return "ERROR: No response generated.";
+        }
+
+    } catch (error) {
+        console.error('Error calling Gemini API:', error);
+        return `ERROR: Failed to establish connection. ${error.message}`;
+    }
+}
+
+// Particle System
 const canvas = document.getElementById('particles');
 const ctx = canvas.getContext('2d');
 canvas.width = window.innerWidth;
@@ -14,17 +130,17 @@ class Particle {
         this.speedY = (Math.random() - 0.5) * 0.3;
         this.opacity = Math.random() * 0.5 + 0.2;
     }
-    
+
     update() {
         this.x += this.speedX;
         this.y += this.speedY;
-        
+
         if (this.x > canvas.width) this.x = 0;
         if (this.x < 0) this.x = canvas.width;
         if (this.y > canvas.height) this.y = 0;
         if (this.y < 0) this.y = canvas.height;
     }
-    
+
     draw() {
         ctx.fillStyle = `rgba(255, 255, 255, ${this.opacity})`;
         ctx.beginPath();
@@ -39,15 +155,12 @@ for (let i = 0; i < particleCount; i++) {
 
 function animate() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
     particles.forEach(particle => {
         particle.update();
         particle.draw();
     });
-    
     requestAnimationFrame(animate);
 }
-
 animate();
 
 window.addEventListener('resize', () => {
@@ -55,14 +168,12 @@ window.addEventListener('resize', () => {
     canvas.height = window.innerHeight;
 });
 
-// Smooth animated loading dots with fade effect
+// Status Text Animation
 const statusText = document.querySelector('.status-text');
 const baseText = '> / Transition Pending';
-
 function animateDots() {
     const time = Date.now();
-    const cycle = (time % 2400) / 2400; // 2.4 second full cycle
-    
+    const cycle = (time % 2400) / 2400;
     let dots = '';
     if (cycle < 0.33) {
         dots = '.';
@@ -71,9 +182,248 @@ function animateDots() {
     } else {
         dots = '...';
     }
-    
     statusText.textContent = baseText + dots;
     requestAnimationFrame(animateDots);
 }
-
 animateDots();
+
+// Console Functions
+function openConsole() {
+    const modal = document.getElementById('consoleModal');
+    modal.classList.remove('closing');
+    modal.classList.add('active');
+    modal.offsetHeight;
+    modal.classList.add('show');
+    document.getElementById('commandInput').focus();
+}
+
+function closeConsole() {
+    const modal = document.getElementById('consoleModal');
+    modal.classList.add('closing');
+    modal.classList.remove('show');
+    setTimeout(() => {
+        modal.classList.remove('active');
+        modal.classList.remove('closing');
+    }, 300);
+}
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        closeConsole();
+        closeApiModal();
+    }
+});
+
+// Audio Context for sound generation
+let audioContext;
+
+function initAudio() {
+    if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+}
+
+function playTypeSound() {
+    initAudio();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.value = 800 + Math.random() * 200;
+    oscillator.type = 'square';
+    
+    gainNode.gain.setValueAtTime(0.05, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.05);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.05);
+}
+
+function playSubmitSound() {
+    initAudio();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.value = 600;
+    oscillator.type = 'sine';
+    
+    gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.15);
+    
+    setTimeout(() => {
+        const osc2 = audioContext.createOscillator();
+        const gain2 = audioContext.createGain();
+        
+        osc2.connect(gain2);
+        gain2.connect(audioContext.destination);
+        
+        osc2.frequency.value = 800;
+        osc2.type = 'sine';
+        
+        gain2.gain.setValueAtTime(0.08, audioContext.currentTime);
+        gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+        
+        osc2.start(audioContext.currentTime);
+        osc2.stop(audioContext.currentTime + 0.1);
+    }, 50);
+}
+
+// VHS Console Logic
+const consoleEl = document.getElementById('console');
+const input = document.getElementById('commandInput');
+
+const commands = {
+    help: 'Available commands:\n  help       - Show this help message\n  clear      - Clear console\n  date       - Show current date\n  echo [msg] - Echo a message\n  matrix     - Wake up, Neo\n  hack       - Initiate cyberdeck protocol\n  hello      - Connect to the entity\n  setkey     - Configure credentials\n  status     - Check connection status',
+    clear: () => {
+        const lines = consoleEl.querySelectorAll('.line');
+        lines.forEach(line => line.remove());
+        conversationHistory = [];
+        return null;
+    },
+    date: () => new Date().toString(),
+    echo: (args) => args.join(' ') || 'echo: no message provided',
+    matrix: () => 'Wake up, Neo...\nThe Matrix has you...',
+    hack: () => 'ACCESS GRANTED\nInitiating cyberdeck protocol...\n[████████████] 100%\nWelcome to the mainframe.',
+    setkey: () => {
+        showApiModal();
+        return 'Opening API key configuration...';
+    },
+    status: () => {
+        if (GEMINI_API_KEY && GEMINI_API_KEY !== 'YOUR_API_KEY_HERE') {
+            return `Connection Status: ACTIVE\nCredentials: ${GEMINI_API_KEY.substring(0, 10)}...\nSession: ${isAIMode ? 'LINKED [' + sessionID + ']' : 'DORMANT'}`;
+        } else {
+            return 'Connection Status: OFFLINE\nPlease configure credentials using the "setkey" command.';
+        }
+    },
+    hello: () => {
+        if (!GEMINI_API_KEY || GEMINI_API_KEY === 'YOUR_API_KEY_HERE') {
+            return 'ERROR: No authentication configured.\nPlease set your credentials first using the "setkey" command.\n\nTo get credentials:\n1. Visit https://makersuite.google.com/app/apikey\n2. Generate new credentials\n3. Type "setkey" and paste';
+        }
+        
+        sessionID = Math.floor(Math.random() * 9000000) + 1000000;
+        isAIMode = true;
+        conversationHistory = []; // Reset conversation
+        updatePrompt();
+        return 'Establishing connection to entity...\n[████████████] 100%\nLink established [' + sessionID + ']\n\nYou are now connected to something in the void.\nType /disconnect to sever the link.\n';
+    }
+};
+
+function updatePrompt() {
+    const promptSpan = document.querySelector('.input-line span:first-child');
+    if (isAIMode) {
+        promptSpan.textContent = 'root@Talk!:~? ';
+    } else {
+        promptSpan.textContent = 'root@vhs:~$ ';
+    }
+}
+
+input.addEventListener('keydown', (e) => {
+    if (e.key.length === 1 || e.key === 'Backspace') {
+        playTypeSound();
+    }
+    
+    if (e.key === 'Enter') {
+        playSubmitSound();
+        const cmd = input.value.trim();
+        
+        // Check for disconnect command in AI mode
+        if (isAIMode && cmd === '/disconnect') {
+            isAIMode = false;
+            conversationHistory = [];
+            updatePrompt();
+            
+            const inputLine = document.createElement('div');
+            inputLine.className = 'line';
+            inputLine.textContent = `root@Talk!:~? ${cmd}`;
+            consoleEl.insertBefore(inputLine, consoleEl.lastElementChild);
+            
+            const output = document.createElement('div');
+            output.className = 'line';
+            output.textContent = `Severing link to session [${sessionID}]...\nConnection terminated.\nReturning to terminal mode.\n`;
+            consoleEl.insertBefore(output, consoleEl.lastElementChild);
+            
+            input.value = '';
+            consoleEl.scrollTop = consoleEl.scrollHeight;
+            return;
+        }
+        
+        // If in AI mode, send to Gemini
+        if (isAIMode) {
+            const inputLine = document.createElement('div');
+            inputLine.className = 'line';
+            inputLine.textContent = `root@Talk!:~? ${cmd}`;
+            consoleEl.insertBefore(inputLine, consoleEl.lastElementChild);
+
+            if (!cmd) {
+                input.value = '';
+                return;
+            }
+
+            // Show loading indicator
+            const loading = document.createElement('div');
+            loading.className = 'line loading';
+            loading.textContent = '[Waiting for response...]';
+            consoleEl.insertBefore(loading, consoleEl.lastElementChild);
+            consoleEl.scrollTop = consoleEl.scrollHeight;
+
+            // Call Gemini API
+            callGeminiAPI(cmd).then(response => {
+                loading.remove();
+                
+                const output = document.createElement('div');
+                output.className = 'line';
+                output.innerHTML = response.replace(/\n/g, '<br>');
+                consoleEl.insertBefore(output, consoleEl.lastElementChild);
+                consoleEl.scrollTop = consoleEl.scrollHeight;
+            });
+
+            input.value = '';
+            return;
+        }
+        
+        // Normal command mode
+        const parts = cmd.split(' ');
+        const command = parts[0];
+        const args = parts.slice(1);
+
+        const inputLine = document.createElement('div');
+        inputLine.className = 'line';
+        inputLine.textContent = `root@vhs:~$ ${cmd}`;
+        consoleEl.insertBefore(inputLine, consoleEl.lastElementChild);
+
+        if (command in commands) {
+            const result = typeof commands[command] === 'function' 
+                ? commands[command](args) 
+                : commands[command];
+            
+            if (result !== null) {
+                const output = document.createElement('div');
+                output.className = 'line';
+                output.innerHTML = result.replace(/\n/g, '<br>');
+                consoleEl.insertBefore(output, consoleEl.lastElementChild);
+            }
+        } else if (cmd) {
+            const error = document.createElement('div');
+            error.className = 'line';
+            error.textContent = `Command not found: ${command}. Type 'help' for available commands.`;
+            consoleEl.insertBefore(error, consoleEl.lastElementChild);
+        }
+
+        input.value = '';
+        consoleEl.scrollTop = consoleEl.scrollHeight;
+    }
+});
+
+document.getElementById('consoleModal').addEventListener('click', (e) => {
+    if (e.target.id === 'consoleModal') {
+        input.focus();
+    }
+});
