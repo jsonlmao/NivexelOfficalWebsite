@@ -1,3 +1,28 @@
+// Background Music Setup
+let bgMusic = null;
+
+function initBackgroundMusic() {
+    bgMusic = new Audio('background-music.mp3'); // Change to your file name
+    bgMusic.loop = true;
+    bgMusic.volume = 0.2; // 20% volume - adjust as needed
+    bgMusic.play().catch(err => {
+        console.log('Autoplay prevented, waiting for user interaction');
+    });
+}
+
+// Start music on first user interaction (click, keypress, etc.)
+document.addEventListener('click', () => {
+    if (!bgMusic) {
+        initBackgroundMusic();
+    }
+}, { once: true });
+
+document.addEventListener('keydown', () => {
+    if (!bgMusic) {
+        initBackgroundMusic();
+    }
+}, { once: true });
+
 // Gemini AI Configuration
 let GEMINI_API_KEY = 'AIzaSyBY1isWRYfk86UK979_bK1Hzr6UCcSjdhI';
 let conversationHistory = [];
