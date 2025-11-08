@@ -351,7 +351,7 @@ But remember.. It lies
 
 -- S████ 
 [AUTHOR NAME CODED DUE TO PRIVACY]`;
-        } else if (filename === 'log.txt' || filename === 'system.log') {
+        } else if (normalizedFilename === 'log' || normalizedFilename === 'system' || filename === 'log.txt' || filename === 'system.log') {
             content = `[System Log - Fragment 04/11/1999]
 
 [${dateStr} T${timeStr}]: SIGNAL DRIFT DETECTED!
